@@ -224,14 +224,94 @@
     objects = nil;
 }
 
+
+
+- (void)parseChildren:(NSDictionary *)dict ofCurrentView:(int)currentView withObjects:(NSDictionary *)objects
+{
+    NSArray *children = [dict objectForKey:@"children"];
+    if (children != nil)
+    {
+        for (NSDictionary *subitem in children)
+        {
+            int subview = [[subitem objectForKey:@"object-id"] intValue];
+
+            id currentViewObject = [objects objectForKey:[NSString stringWithFormat:@"%d", currentView]];
+            NSString *instanceName = [self instanceNameForObject:currentViewObject];
+            
+            id subViewObject = [objects objectForKey:[NSString stringWithFormat:@"%d", subview]];
+            NSString *subInstanceName = [self instanceNameForObject:subViewObject];
+            
+            [self parseChildren:subitem ofCurrentView:subview withObjects:objects];
+            [_output appendFormat:@"[%@%d addSubview:%@%d];\n", instanceName, currentView, subInstanceName, subview];
+        }
+    }
+}
+
+- (NSString *)instanceNameForObject:(id)obj
+{
+    id klass = [obj objectForKey:@"class"];
+    NSString *instanceName = [[klass lowercaseString] substringFromIndex:2];
+    return instanceName;
+}
+
+
 - (NSString *) eventConstantForString:(NSString *)string {
 	if([string isEqualToString:@"Touch Up Inside"])
 		return @"UIControlEventTouchUpInside";
 	if([string isEqualToString:@"Value Changed"])
 		return @"UIControlEventTouchUpInside";
+	if([string isEqualToString:@"Touch Down" ])
+		return @"UIControlEventTouchDown";
+	if([string isEqualToString:@"Touch Down Repeat" ])
+		return @"UIControlEventTouchDownRepeat";
+	if([string isEqualToString:@"Touch Drag Inside" ])
+		return @"UIControlEventTouchDragInside";
+	if([string isEqualToString:@"Touch Drag Outside" ])
+		return @"UIControlEventTouchDragOutside";
+	if([string isEqualToString:@"Touch Drag Enter" ])
+		return @"UIControlEventTouchDragEnter";
+	if([string isEqualToString:@"Touch Drag Exit" ])
+		return @"UIControlEventTouchDragExit";
+	if([string isEqualToString:@"Touch Up Inside" ])
+		return @"UIControlEventTouchUpInside";
+	if([string isEqualToString:@"Touch Up Outside" ])
+		return @"UIControlEventTouchUpOutside";
+	if([string isEqualToString:@"Touch Cancel" ])
+		return @"UIControlEventTouchCancel";
+	if([string isEqualToString:@"Value Changed" ])
+		return @"UIControlEventValueChanged";
+	if([string isEqualToString:@"Editing Did Begin" ])
+		return @"UIControlEventEditingDidBegin";
+	if([string isEqualToString:@"Editing Changed" ])
+		return @"UIControlEventEditingChanged";
+	if([string isEqualToString:@"Editing Did End" ])
+		return @"UIControlEventEditingDidEnd";
+	if([string isEqualToString:@"Editing Did End On Exit" ])
+		return @"UIControlEventEditingDidEndOnExit";
 
 	return [NSString stringWithFormat:@"*********** %@", string];
 
+	/* 
+	 UIControlEventTouchDown           = 1 <<  0,      // on all touch downs
+	 UIControlEventTouchDownRepeat     = 1 <<  1,      // on multiple touchdowns (tap count > 1)
+	 UIControlEventTouchDragInside     = 1 <<  2,
+	 UIControlEventTouchDragOutside    = 1 <<  3,
+	 UIControlEventTouchDragEnter      = 1 <<  4,
+	 UIControlEventTouchDragExit       = 1 <<  5,
+	 UIControlEventTouchUpInside       = 1 <<  6,
+	 UIControlEventTouchUpOutside      = 1 <<  7,
+	 UIControlEventTouchCancel         = 1 <<  8,
+	 UIControlEventValueChanged        = 1 << 12,     // sliders, etc.
+	 UIControlEventEditingDidBegin     = 1 << 16,     // UITextField
+	 UIControlEventEditingChanged      = 1 << 17,
+	 UIControlEventEditingDidEnd       = 1 << 18,
+	 UIControlEventEditingDidEndOnExit = 1 << 19,     // 'return key' ending editing
+	 UIControlEventAllTouchEvents      = 0x00000FFF,  // for touch events
+	 UIControlEventAllEditingEvents    = 0x000F0000,  // for UITextField
+	 UIControlEventApplicationReserved = 0x0F000000,  // range available for application use
+	 UIControlEventSystemReserved      = 0xF0000000,  // range reserved for internal framework use
+	 UIControlEventAllEvents           = 0xFFFFFFFF
+	 */
 }
 
 - (void)connectObjects:(NSDictionary *)objects usingNibConnections:(NSDictionary *)nibConnections {
@@ -280,7 +360,8 @@
 				} else if ([type isEqualToString:@"IBCocoaTouchOutletConnection"]) {
 					[_output appendFormat:@"%@.%@ = %@;\n", dstLabel, outletLabel, srcLabel];
 				} else
-					NSLog(@"%@: %d -> %@.%@", type, srcId, dstLabel, type);
+					NSLog(@"*** FAIL *** %@: %d -> %@\n\n%@\n\n", type, srcId, dstLabel, connection);
+
 			} else {
 				NSLog(@"WAT");
 			}
@@ -293,33 +374,5 @@
 }
 
 
-
-- (void)parseChildren:(NSDictionary *)dict ofCurrentView:(int)currentView withObjects:(NSDictionary *)objects
-{
-    NSArray *children = [dict objectForKey:@"children"];
-    if (children != nil)
-    {
-        for (NSDictionary *subitem in children)
-        {
-            int subview = [[subitem objectForKey:@"object-id"] intValue];
-
-            id currentViewObject = [objects objectForKey:[NSString stringWithFormat:@"%d", currentView]];
-            NSString *instanceName = [self instanceNameForObject:currentViewObject];
-            
-            id subViewObject = [objects objectForKey:[NSString stringWithFormat:@"%d", subview]];
-            NSString *subInstanceName = [self instanceNameForObject:subViewObject];
-            
-            [self parseChildren:subitem ofCurrentView:subview withObjects:objects];
-            [_output appendFormat:@"[%@%d addSubview:%@%d];\n", instanceName, currentView, subInstanceName, subview];
-        }
-    }
-}
-
-- (NSString *)instanceNameForObject:(id)obj
-{
-    id klass = [obj objectForKey:@"class"];
-    NSString *instanceName = [[klass lowercaseString] substringFromIndex:2];
-    return instanceName;
-}
 
 @end

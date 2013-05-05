@@ -112,7 +112,7 @@
 - (void)process
 {
     //    NSDictionary *nibClasses = [dict objectForKey:@"com.apple.ibtool.document.classes"];
-    //    NSDictionary *nibConnections = [dict objectForKey:@"com.apple.ibtool.document.connections"];
+	NSDictionary *nibConnections = [_dictionary objectForKey:@"com.apple.ibtool.document.connections"];
     NSDictionary *nibObjects = [_dictionary objectForKey:@"com.apple.ibtool.document.objects"];
     NSMutableDictionary *objects = [[NSMutableDictionary alloc] init];
     
@@ -211,10 +211,88 @@
         int currentView = [[item objectForKey:@"object-id"] intValue];
         [self parseChildren:item ofCurrentView:currentView withObjects:objects];
     }
-    
+
+	// Last, wire it up
+    [self connectObjects:objects usingNibConnections:nibConnections ];
+
+
+	
+
+
+
     [objects release];
     objects = nil;
 }
+
+- (NSString *) eventConstantForString:(NSString *)string {
+	if([string isEqualToString:@"Touch Up Inside"])
+		return @"UIControlEventTouchUpInside";
+	if([string isEqualToString:@"Value Changed"])
+		return @"UIControlEventTouchUpInside";
+
+	return [NSString stringWithFormat:@"*********** %@", string];
+
+}
+
+- (void)connectObjects:(NSDictionary *)objects usingNibConnections:(NSDictionary *)nibConnections {
+
+	[_output appendFormat:@"// wire us up\n"];
+
+	for(NSObject * key in [nibConnections allKeys]) {
+		NSDictionary *connection = [nibConnections objectForKey:key];
+
+		if(connection) {
+			int dstId = [[connection objectForKey:@"destination-id"] intValue];
+			int srcId = [[connection objectForKey:@"source-id"] intValue];
+
+			NSDictionary *dstObj = [objects objectForKey:[NSString stringWithFormat:@"%d",dstId]];
+			NSDictionary *srcObj = [objects objectForKey:[NSString stringWithFormat:@"%d",srcId]];
+
+			if(dstObj) {
+				NSString *srcLabel;
+				NSString *dstLabel;
+
+				if(dstId == -1) {
+					dstLabel = @"owner";
+				} else {
+					dstLabel = [NSString stringWithFormat:@"%@%d", [self instanceNameForObject:dstObj], dstId];
+				}
+
+				if(srcId == -1) {
+					srcLabel = @"owner";
+				} else {
+					srcLabel = [NSString stringWithFormat:@"%@%d", [self instanceNameForObject:srcObj], srcId];
+				}
+
+				NSString *outletLabel = [connection objectForKey:@"label"];
+				NSString *type = [connection objectForKey:@"type"];
+
+				if([type isEqualToString:@"IBCocoaTouchEventConnection"]) {
+					NSString *eventConstant;
+					for(id key in connection.allKeys) {
+						id val = [connection objectForKey:key];
+						if([@"event-type" isEqualTo:val]) {
+							eventConstant = [self eventConstantForString:key];
+						}
+					}
+
+					[_output appendFormat:@"[%@ addTarget:%@ action:@selector(%@) forEvent:%@ ];\n", srcLabel, dstLabel, outletLabel, eventConstant];
+				} else if ([type isEqualToString:@"IBCocoaTouchOutletConnection"]) {
+					[_output appendFormat:@"%@.%@ = %@;\n", dstLabel, outletLabel, srcLabel];
+				} else
+					NSLog(@"%@: %d -> %@.%@", type, srcId, dstLabel, type);
+			} else {
+				NSLog(@"WAT");
+			}
+		} else {
+			NSLog(@"Couldn't find key [%@] ! keys are [%@]", key, [objects allKeys]);
+		}
+
+		//		NSString *source = [conn objectForKey:@""];
+	}
+}
+
+
 
 - (void)parseChildren:(NSDictionary *)dict ofCurrentView:(int)currentView withObjects:(NSDictionary *)objects
 {

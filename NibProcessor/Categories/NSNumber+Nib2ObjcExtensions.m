@@ -100,9 +100,10 @@
 
 - (NSString *)textAlignmentString
 {
-    NSArray *values = [NSArray arrayWithObjects:@"UITextAlignmentLeft", 
-                       @"UITextAlignmentCenter", 
-                       @"UITextAlignmentRight", nil];
+	// iOS 6 Change from UITextAlignment[x] to NSTextAlignment[x]
+    NSArray *values = [NSArray arrayWithObjects:@"NSTextAlignmentLeft",
+                       @"NSTextAlignmentCenter",
+                       @"NSTextAlignmentRight", nil];
     return [values objectAtIndex:[self intValue]];
 }
 

@@ -335,9 +335,9 @@
 						}
 					}
 
-					[_output appendFormat:@"[%@ addTarget:%@ action:@selector(%@) forEvent:%@ ];\n", srcLabel, dstLabel, outletLabel, eventConstant];
+					[_output appendFormat:@"[%@ addTarget:%@ action:@selector(%@) forControlEvents:%@ ];\n", srcLabel, dstLabel, outletLabel, eventConstant];
 				} else if ([type isEqualToString:@"IBCocoaTouchOutletConnection"]) {
-					[_output appendFormat:@"%@.%@ = %@;\n", dstLabel, outletLabel, srcLabel];
+					[_output appendFormat:@"%@.%@ = %@;\n", srcLabel, outletLabel, dstLabel];
 				} else
 					NSLog(@"*** FAIL *** %@: %d -> %@\n\n%@\n\n", type, srcId, dstLabel, connection);
 
